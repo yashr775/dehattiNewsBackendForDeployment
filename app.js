@@ -24,7 +24,7 @@ const mongoUri = process.env.MONGO_URI;
 export const myCache = new NodeCache();
 
 
-app.use(cors(corsOptions));
+app.use(cors("*"));
 app.use(morgan("dev"))
 app.use(express.json());
 

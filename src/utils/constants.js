@@ -9,3 +9,5 @@ export const corsOptions = {
     ],
     credentials: true,
 };
+
+console.log(process.env.CLIENT_URL)
