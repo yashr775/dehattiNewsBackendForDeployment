@@ -31,7 +31,7 @@ const getAllPosts = TryCatch(async (req, res, next) => {
     if (cachedPosts) {
         return res.status(200).json({ success: true, posts: cachedPosts });
     }
-    const posts = await Posts.find({});
+    const posts = await Posts.find({}).sort({ createdAt: -1 });
     myCache.set("allPosts", posts, TTL);
     return res.status(200).json({ success: true, posts });
 });

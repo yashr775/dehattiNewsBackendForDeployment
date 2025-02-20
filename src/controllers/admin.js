@@ -18,6 +18,7 @@ const loginUser = TryCatch(async (req, res, next) => {
     }
 
     const admin = await User.findOne({ email });
+
     const isMatch = await bcrypt.compare(password, AdminPassKey);
     if (!isMatch || !admin) return next(new Error("You are not allowed", 404));
 

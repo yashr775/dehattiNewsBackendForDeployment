@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectToMongoDB, hashPassword } from "./src/utils/features.js";
 import userRoute from "./src/routes/admin.js";
 import postsRoute from "./src/routes/post.js"
+import sponsorsRoute from "./src/routes/sponsor.js"
 import { v2 as cloudinary } from "cloudinary";
 import morgan from "morgan";
 import NodeCache from "node-cache";
@@ -56,6 +57,7 @@ const initializeServer = async () => {
 
         app.use("/api/v1/user", userRoute);
         app.use("/api/v1/posts", postsRoute)
+        app.use("/api/v1/sponsors", sponsorsRoute)
 
         app.listen(PORT, () => {
             console.log(`App is listening on port ${PORT}`);
