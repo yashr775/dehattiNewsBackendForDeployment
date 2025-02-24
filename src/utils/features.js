@@ -36,23 +36,26 @@ const uploadToCloudinary = async (files) => {
 
     return result.map((i) => ({
         public_id: i.public_id,
-        url: i.secure_url
-    }))
-
+        url: i.secure_url,
+    }));
 };
 
 const deleteFromCloudinary = async (publicIds) => {
-
     const ids = Array.isArray(publicIds) ? publicIds : [publicIds];
     const promises = ids.map((publicId) => {
         return new Promise((resolve, reject) => {
             cloudinary.uploader.destroy(publicId, (error, result) => {
-                if (error) return reject(error)
-                resolve()
-            })
-        })
-    })
-    await Promise.all(promises)
-}
+                if (error) return reject(error);
+                resolve();
+            });
+        });
+    });
+    await Promise.all(promises);
+};
 
-export { connectToMongoDB, hashPassword, uploadToCloudinary, deleteFromCloudinary };
+export {
+    connectToMongoDB,
+    hashPassword,
+    uploadToCloudinary,
+    deleteFromCloudinary,
+};

@@ -4,9 +4,9 @@ import { Posts } from "../models/posts.js";
 import { deleteFromCloudinary, uploadToCloudinary } from "../utils/features.js";
 import { myCache } from "../../app.js";
 import { TTL } from "../../app.js";
-import PDFDocument from 'pdfkit';
-import fetch from 'node-fetch';
-import path from 'path';
+import PDFDocument from "pdfkit";
+import fetch from "node-fetch";
+import path from "path";
 
 const createPost = TryCatch(async (req, res) => {
     const { title, description, category } = req.body;
@@ -15,11 +15,17 @@ const createPost = TryCatch(async (req, res) => {
 
     if (!photos) return new Error("Please upload photos", 400);
 
-    if (!title || !description || !category) return new Error("Please enter all fields");
+    if (!title || !description || !category)
+        return new Error("Please enter all fields");
 
     const photosUrl = await uploadToCloudinary(photos);
 
-    const post = await Posts.create({ title, description, category, photos: photosUrl });
+    const post = await Posts.create({
+        title,
+        description,
+        category,
+        photos: photosUrl,
+    });
     myCache.del("allPosts");
     return res
         .status(201)
@@ -139,7 +145,7 @@ const downloadPost = TryCatch(async (req, res, next) => {
 
     // Fetch posts from the database for the given date
     const posts = await Posts.find({
-        createdAt: { $gte: startDate, $lte: endDate }
+        createdAt: { $gte: startDate, $lte: endDate },
     });
 
     if (posts.length === 0) {
@@ -151,18 +157,18 @@ const downloadPost = TryCatch(async (req, res, next) => {
     const filename = `posts_${date}.pdf`;
 
     // Set response headers for PDF download
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
 
     // Pipe the PDF document to the response
     doc.pipe(res);
 
     // Load a Hindi-supported font
-    const fontPath = path.resolve('fonts/NotoSansDevanagari.ttf'); // Update the path to your font file
-    doc.registerFont('HindiFont', fontPath);
+    const fontPath = path.resolve("fonts/NotoSansDevanagari.ttf"); // Update the path to your font file
+    doc.registerFont("HindiFont", fontPath);
 
     // Use the Hindi font for the document
-    doc.font('HindiFont');
+    doc.font("HindiFont");
 
     // Loop through each post and add it to the PDF
     for (const post of posts) {
@@ -178,8 +184,8 @@ const downloadPost = TryCatch(async (req, res, next) => {
                 // Add the image to the PDF
                 doc.image(imageBuffer, {
                     fit: [250, 250], // Adjust image size
-                    align: 'center',
-                    valign: 'center'
+                    align: "center",
+                    valign: "center",
                 });
 
                 // Manually move the cursor down after adding the image
@@ -188,7 +194,7 @@ const downloadPost = TryCatch(async (req, res, next) => {
                 doc.y += imageHeight + padding; // Move the cursor down
             } catch (error) {
                 console.error("Error fetching image:", error);
-                doc.text("Unable to load image", { align: 'center' });
+                doc.text("Unable to load image", { align: "center" });
             }
         }
 
@@ -206,7 +212,6 @@ const downloadPost = TryCatch(async (req, res, next) => {
     doc.end();
 });
 
-
 export {
     createPost,
     getAllPosts,
@@ -214,5 +219,5 @@ export {
     deleteImage,
     deletePost,
     updatePost,
-    downloadPost
+    downloadPost,
 };

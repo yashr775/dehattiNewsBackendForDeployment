@@ -4,7 +4,11 @@ const schema = new Schema(
     {
         title: { type: String, required: [true, "Please enter title"] },
         description: { type: String, required: [true, "Please enter description"] },
-        category: { type: String, required: [true, "Please enter category"], enum: ["crime", "health", "sports", "story", "farming", "general"] },
+        category: {
+            type: String,
+            required: [true, "Please enter category"],
+            enum: ["crime", "health", "sports", "story", "farming", "general"],
+        },
         photos: [
             {
                 public_id: { type: String, required: [true, "Please enter public_id"] },

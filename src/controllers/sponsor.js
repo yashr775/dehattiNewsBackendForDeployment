@@ -3,7 +3,6 @@ import { Sponsors } from "../models/sponsor.js";
 import { myCache, TTL } from "../../app.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/features.js";
 
-
 const createSponsor = TryCatch(async (req, res) => {
     const { name } = req.body;
 
@@ -20,7 +19,7 @@ const createSponsor = TryCatch(async (req, res) => {
     return res
         .status(201)
         .json({ success: true, message: "Sponsor created successfully" });
-})
+});
 
 const deleteSponsor = TryCatch(async (req, res, next) => {
     const { sponsorId } = req.params;
@@ -49,5 +48,4 @@ const getAllSponsors = TryCatch(async (req, res, next) => {
     return res.status(200).json({ success: true, sponsors });
 });
 
-
-export { createSponsor, deleteSponsor, getAllSponsors }
+export { createSponsor, deleteSponsor, getAllSponsors };

@@ -3,8 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { connectToMongoDB, hashPassword } from "./src/utils/features.js";
 import userRoute from "./src/routes/admin.js";
-import postsRoute from "./src/routes/post.js"
-import sponsorsRoute from "./src/routes/sponsor.js"
+import postsRoute from "./src/routes/post.js";
+import sponsorsRoute from "./src/routes/sponsor.js";
 import { v2 as cloudinary } from "cloudinary";
 import morgan from "morgan";
 import NodeCache from "node-cache";
@@ -12,7 +12,6 @@ import NodeCache from "node-cache";
 dotenv.config({ path: "./.env" });
 
 const app = express();
-
 
 const PORT = process.env.PORT;
 export let AdminPassKey;
@@ -23,7 +22,7 @@ export const envMode = process.env.NODE_ENV || "PRODUCTION";
 const mongoUri = process.env.MONGO_URI;
 export const myCache = new NodeCache();
 
-console.log(process.env.CLIENT_URL)
+console.log(process.env.CLIENT_URL);
 
 const corsOptions = {
     origin: [
@@ -34,10 +33,8 @@ const corsOptions = {
     credentials: true,
 };
 
-
-
 app.use(cors(corsOptions));
-app.use(morgan("dev"))
+app.use(morgan("dev"));
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -56,8 +53,8 @@ const initializeServer = async () => {
         await connectToMongoDB(mongoUri);
 
         app.use("/api/v1/user", userRoute);
-        app.use("/api/v1/posts", postsRoute)
-        app.use("/api/v1/sponsors", sponsorsRoute)
+        app.use("/api/v1/posts", postsRoute);
+        app.use("/api/v1/sponsors", sponsorsRoute);
 
         app.listen(PORT, () => {
             console.log(`App is listening on port ${PORT}`);
