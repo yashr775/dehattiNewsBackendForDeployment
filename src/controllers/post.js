@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { TryCatch } from "../middleware/error.js";
 import { Posts } from "../models/posts.js";
-import { deleteFromCloudinary, uploadToCloudinary } from "../utils/features.js";
+import { deleteFromImageKit, uploadToImageKit } from "../utils/features.js";
 import { myCache } from "../../app.js";
 import { TTL } from "../../app.js";
 import PDFDocument from "pdfkit";
@@ -10,15 +10,12 @@ import path from "path";
 
 const createPost = TryCatch(async (req, res) => {
     const { title, description, category } = req.body;
-
     const photos = req.files;
 
-    if (!photos) return new Error("Please upload photos", 400);
+    if (!photos) return next(new Error("Please upload photos", 400));
+    if (!title || !description || !category) return next(new Error("Please enter all fields"));
 
-    if (!title || !description || !category)
-        return new Error("Please enter all fields");
-
-    const photosUrl = await uploadToCloudinary(photos);
+    const photosUrl = await uploadToImageKit(photos);
 
     const post = await Posts.create({
         title,
@@ -26,25 +23,46 @@ const createPost = TryCatch(async (req, res) => {
         category,
         photos: photosUrl,
     });
+
     myCache.del("allPosts");
-    return res
-        .status(201)
-        .json({ success: true, message: "Post created successfully" });
+    return res.status(201).json({ success: true, message: "Post created successfully" });
+});
+
+const getAll = TryCatch(async (req, res, next) => {
+    const posts = await Posts.find().sort({ createdAt: -1 });
+
+    return res.status(200).json({
+        success: true,
+        posts,
+    });
 });
 
 const getAllPosts = TryCatch(async (req, res, next) => {
-    const cachedPosts = myCache.get("allPosts");
-    if (cachedPosts) {
-        return res.status(200).json({ success: true, posts: cachedPosts });
+    const { category, page = 1, limit = 4 } = req.body
+
+    const filter = {}
+    if (category && category != "general") {
+        filter.category = category;
+
     }
-    const posts = await Posts.find({}).sort({ createdAt: -1 });
-    myCache.set("allPosts", posts, TTL);
-    return res.status(200).json({ success: true, posts });
+
+    const posts = await Posts.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+
+    const total = await Posts.countDocuments(filter);
+
+    return res.status(200).json({
+        success: true,
+        posts,
+        total,
+        hasMore: (page * limit) < total,
+    });
 });
 
 const getSinglePost = TryCatch(async (req, res, next) => {
     const { postId } = req.params;
-
     const cachedPost = myCache.get(`post_${postId}`);
 
     if (cachedPost) {
@@ -52,105 +70,86 @@ const getSinglePost = TryCatch(async (req, res, next) => {
     }
 
     const post = await Posts.findById(postId);
-
-    if (!post) return next(new Error("Post dees not Exist", 400));
+    if (!post) return next(new Error("Post does not exist", 400));
 
     myCache.set(`post_${postId}`, post, TTL);
-
     return res.status(200).json({ success: true, post });
 });
 
 const deleteImage = TryCatch(async (req, res, next) => {
     const { imageId, postId } = req.query;
     const objectId = new mongoose.Types.ObjectId(postId);
-
     const post = await Posts.findById(objectId);
 
     if (!post) return next(new Error("Post not found", 404));
 
-    await deleteFromCloudinary(imageId);
+    await deleteFromImageKit(imageId);
 
     post.photos = post.photos.filter((i) => i.public_id !== imageId);
-
     await post.save();
+
     myCache.del("allPosts");
     myCache.del(`post_${postId}`);
-    return res
-        .status(200)
-        .json({ success: true, message: "Image deleted successfully" });
+
+    return res.status(200).json({ success: true, message: "Image deleted successfully" });
 });
 
 const updatePost = TryCatch(async (req, res, next) => {
     const { postId } = req.params;
-
     const { title, description } = req.body;
-
     const photos = req.files;
 
     const post = await Posts.findById(postId);
-
     if (!post) return next(new Error("Post not found", 404));
 
-    if (title) {
-        post.title = title;
-    }
-
-    if (description) {
-        post.description = description;
-    }
+    if (title) post.title = title;
+    if (description) post.description = description;
 
     if (photos && photos.length > 0) {
-        const ids = await uploadToCloudinary(photos);
+        const ids = await uploadToImageKit(photos);
         post.photos.push(...ids);
     }
 
     await post.save();
     myCache.del("allPosts");
     myCache.del(`post_${postId}`);
-    return res
-        .status(200)
-        .json({ success: true, message: "Post updated successfully" });
+
+    return res.status(200).json({ success: true, message: "Post updated successfully" });
 });
 
 const deletePost = TryCatch(async (req, res, next) => {
     const { postId } = req.params;
     myCache.del("allPosts");
     myCache.del(`post_${postId}`);
-    const post = await Posts.findById(postId);
 
+    const post = await Posts.findById(postId);
     if (!post) return next(new Error("Post does not exist", 400));
+
     const ids = post.photos.map((i) => i.public_id);
-    await deleteFromCloudinary(ids);
+    await deleteFromImageKit(ids);
+
     await Posts.deleteOne({ _id: postId });
+
     myCache.del("allPosts");
     myCache.del(`post_${postId}`);
-    return res
-        .status(200)
-        .json({ success: true, message: "post deleted successfully" });
+
+    return res.status(200).json({ success: true, message: "Post deleted successfully" });
 });
 
 const downloadPost = TryCatch(async (req, res, next) => {
     const { date } = req.query;
 
-    if (!date) {
-        return next(new Error("Please provide a date", 400));
-    }
+    if (!date) return next(new Error("Please provide a date", 400));
 
     // Convert the date to a start and end range for the query
     const startDate = new Date(date);
-    startDate.setHours(0, 0, 0, 0); // Start of the day
+    startDate.setHours(0, 0, 0, 0);
 
     const endDate = new Date(date);
-    endDate.setHours(23, 59, 59, 999); // End of the day
+    endDate.setHours(23, 59, 59, 999);
 
-    // Fetch posts from the database for the given date
-    const posts = await Posts.find({
-        createdAt: { $gte: startDate, $lte: endDate },
-    });
-
-    if (posts.length === 0) {
-        return next(new Error("No posts found for the given date", 404));
-    }
+    const posts = await Posts.find({ createdAt: { $gte: startDate, $lte: endDate } });
+    if (posts.length === 0) return next(new Error("No posts found for the given date", 404));
 
     // Create a PDF document
     const doc = new PDFDocument();
@@ -164,7 +163,7 @@ const downloadPost = TryCatch(async (req, res, next) => {
     doc.pipe(res);
 
     // Load a Hindi-supported font
-    const fontPath = path.resolve("fonts/NotoSansDevanagari.ttf"); // Update the path to your font file
+    const fontPath = path.resolve("fonts/NotoSansDevanagari.ttf");
     doc.registerFont("HindiFont", fontPath);
 
     // Use the Hindi font for the document
@@ -172,45 +171,33 @@ const downloadPost = TryCatch(async (req, res, next) => {
 
     // Loop through each post and add it to the PDF
     for (const post of posts) {
-        // Add the first image if available
         if (post.photos && post.photos.length > 0) {
-            const imageUrl = post.photos[0].url; // Use the URL directly from the post
+            const imageUrl = post.photos[0].url;
 
             try {
-                // Fetch the image from the URL
                 const imageResponse = await fetch(imageUrl);
                 const imageBuffer = await imageResponse.buffer();
 
-                // Add the image to the PDF
-                doc.image(imageBuffer, {
-                    fit: [250, 250], // Adjust image size
-                    align: "center",
-                    valign: "center",
-                });
+                doc.image(imageBuffer, { fit: [250, 250], align: "center", valign: "center" });
 
-                // Manually move the cursor down after adding the image
-                const imageHeight = 250; // Height of the image
-                const padding = 20; // Additional padding
-                doc.y += imageHeight + padding; // Move the cursor down
+                doc.y += 270; // Adjust spacing
             } catch (error) {
                 console.error("Error fetching image:", error);
                 doc.text("Unable to load image", { align: "center" });
             }
         }
 
-        // Add title and description
         doc.fontSize(18).text(` ${post.title}`, { underline: true });
-        doc.moveDown(); // Add space after the title
+        doc.moveDown();
         doc.fontSize(12).text(`${post.description}`);
-        doc.moveDown(2); // Add 2 lines of space after the description
-
-        // Add a separator between posts
+        doc.moveDown(2);
         doc.addPage();
     }
 
-    // Finalize the PDF and end the response
     doc.end();
 });
+
+
 
 export {
     createPost,
@@ -220,4 +207,5 @@ export {
     deletePost,
     updatePost,
     downloadPost,
+    getAll
 };

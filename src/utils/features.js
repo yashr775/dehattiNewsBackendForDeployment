@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
-import { v2 as cloudinary } from "cloudinary";
+import dotenv from "dotenv";
+import { imagekit } from "../../app.js";
 
+dotenv.config({ path: "../../.env" });
+
+// MongoDB Connection
 const connectToMongoDB = (mongoUri) => {
     mongoose
         .connect(mongoUri, { dbName: "NewsDB" })
@@ -13,49 +17,59 @@ const connectToMongoDB = (mongoUri) => {
         });
 };
 
+// Hash Password
 const hashPassword = async (adminKey) => {
     const saltRounds = 5;
-    const hashedAdminKey = await bcrypt.hash(adminKey, saltRounds);
-
-    return hashedAdminKey;
+    return await bcrypt.hash(adminKey, saltRounds);
 };
+
+// Initialize ImageKit
+
+
+// Convert File to Base64
 const getBase64 = (file) =>
     `data:${file.mimetype};base64,${file.buffer.toString("base64")}`;
 
-const uploadToCloudinary = async (files) => {
-    const promises = files.map(async (file) => {
-        return new Promise((resolve, reject) => {
-            cloudinary.uploader.upload(getBase64(file), (error, result) => {
-                if (error) return reject(error);
-                resolve(result);
+// Upload to ImageKit
+const uploadToImageKit = async (files) => {
+    try {
+        const uploadPromises = files.map(async (file) => {
+            const result = await imagekit.upload({
+                file: getBase64(file),
+                fileName: file.originalname,
+                folder: "/uploads",
             });
+
+            return {
+                public_id: result.fileId, // ✅ ImageKit uses fileId instead of public_id
+                url: result.url,
+            };
         });
-    });
 
-    const result = await Promise.all(promises);
-
-    return result.map((i) => ({
-        public_id: i.public_id,
-        url: i.secure_url,
-    }));
+        return await Promise.all(uploadPromises);
+    } catch (error) {
+        throw new Error(`Image upload failed: ${error.message}`);
+    }
 };
 
-const deleteFromCloudinary = async (publicIds) => {
-    const ids = Array.isArray(publicIds) ? publicIds : [publicIds];
-    const promises = ids.map((publicId) => {
-        return new Promise((resolve, reject) => {
-            cloudinary.uploader.destroy(publicId, (error, result) => {
-                if (error) return reject(error);
-                resolve();
-            });
+// Delete from ImageKit
+const deleteFromImageKit = async (publicIds) => {
+    try {
+        const ids = Array.isArray(publicIds) ? publicIds : [publicIds];
+
+        const deletePromises = ids.map(async (fileId) => {
+            await imagekit.deleteFile(fileId);
         });
-    });
-    await Promise.all(promises);
+
+        await Promise.all(deletePromises);
+    } catch (error) {
+        throw new Error(`Failed to delete image: ${error.message}`);
+    }
 };
 
 export {
     connectToMongoDB,
     hashPassword,
-    uploadToCloudinary,
-    deleteFromCloudinary,
+    uploadToImageKit,
+    deleteFromImageKit,
 };
