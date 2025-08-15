@@ -46,4 +46,22 @@ const getAllSponsors = TryCatch(async (req, res, next) => {
     return res.status(200).json({ success: true, sponsors });
 });
 
-export { createSponsor, deleteSponsor, getAllSponsors };
+const getLimitedSponsors = TryCatch(async (req, res, next) => {
+    const { page = 1, limit = 5 } = req.body; // ✅ Read page & limit from body
+
+    const sponsors = await Sponsors.find({})
+        .sort({ createdAt: 1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit));
+
+    const total = await Sponsors.countDocuments();
+
+    return res.status(200).json({
+        success: true,
+        sponsors,
+        total,
+        hasMore: (page * limit) < total, // ✅ Tells frontend if there are more
+    });
+});
+
+export { createSponsor, deleteSponsor, getAllSponsors, getLimitedSponsors };
