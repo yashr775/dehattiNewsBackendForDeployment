@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { connectToMongoDB, hashPassword } from "./src/utils/features.js";
 import userRoute from "./src/routes/admin.js";
 import postsRoute from "./src/routes/post.js";
+import analyticsRoute from "./src/routes/analytics.js";
 import sponsorsRoute from "./src/routes/sponsor.js";
 import ImageKit from "imagekit";
 import morgan from "morgan";
@@ -26,6 +27,7 @@ export const TTL = process.env.TIME_TO_LIVE;
 export const envMode = process.env.NODE_ENV || "PRODUCTION";
 const mongoUri = process.env.MONGO_URI;
 export const myCache = new NodeCache();
+export const GA4_PROPERTYID = process.env.GA4_PROPERTYID
 
 
 
@@ -58,9 +60,9 @@ export const imagekit = new ImageKit({
 
 app.get("/viewfull/:id", async (req, res) => {
   try {
-    const { id } = req?.params; // ✅ This line is missing in your code
+    const { id } = req?.params;
 
-    // ✅ Use your backend API, not CLIENT_URL
+
     const apiResponse = await axios.get(
       `${process.env.SERVER_URL}/api/v1/posts/${id}`
     );
@@ -127,11 +129,12 @@ const initializeServer = async () => {
   try {
     AdminPassKey = await hashPassword(process.env.ADMIN_PASS_KEY);
 
-    await connectToMongoDB(mongoUri);
+    connectToMongoDB(mongoUri);
 
     app.use("/api/v1/user", userRoute);
     app.use("/api/v1/posts", postsRoute);
     app.use("/api/v1/sponsors", sponsorsRoute);
+    app.use("/api/v1/analytics", analyticsRoute)
 
     app.listen(PORT, () => {
       console.log(`🚀 App is listening on port ${PORT}`);

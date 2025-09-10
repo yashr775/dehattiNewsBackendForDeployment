@@ -67,9 +67,48 @@ const deleteFromImageKit = async (publicIds) => {
     }
 };
 
+// Util to convert YYYYMMDD to YYYY-MM-DD
+const formatDate = (yyyymmdd) => {
+    return (
+        yyyymmdd.slice(0, 4) +
+        "-" +
+        yyyymmdd.slice(4, 6) +
+        "-" +
+        yyyymmdd.slice(6, 8)
+    );
+}
+
+const parseRow = (row) => {
+    const [
+        { value: date },
+    ] = row.dimensionValues;
+
+    const [
+        { value: activeUsers },
+        { value: newUsers },
+        { value: sessions },
+        { value: screenPageViews },
+        { value: bounceRate },
+        { value: averageSessionDuration },
+    ] = row.metricValues;
+
+    return {
+        date: formatDate(date),
+        activeUsers: Number(activeUsers),
+        newUsers: Number(newUsers),
+        sessions: Number(sessions),
+        screenPageViews: Number(screenPageViews),
+        bounceRate: Number(parseFloat(bounceRate).toFixed(3)),
+        averageSessionDuration: Number(parseFloat(averageSessionDuration).toFixed(1)),
+    };
+};
+
+
 export {
     connectToMongoDB,
     hashPassword,
     uploadToImageKit,
     deleteFromImageKit,
+    parseRow,
+    formatDate
 };
