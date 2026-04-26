@@ -7,6 +7,7 @@ import { TTL } from "../../app.js";
 import PDFDocument from "pdfkit";
 import fetch from "node-fetch";
 import path from "path";
+import { sendNotification } from "../controllers/notificationController.js";
 
 const createPost = TryCatch(async (req, res) => {
     const { title, description, category } = req.body;
@@ -23,6 +24,15 @@ const createPost = TryCatch(async (req, res) => {
         category,
         photos: photosUrl,
     });
+
+    // After saving the post
+    const payload = {
+    title: post.title,
+    image: post.imageUrl || post.photos?.[0]?.url || `${process.env.CLIENT_URL}/dehaatnews.png`,
+    url: `${process.env.CLIENT_URL}viewfull/${post._id}`,
+    };
+
+    await sendNotification(payload);
 
     myCache.del("allPosts");
     return res.status(201).json({ success: true, message: "Post created successfully" });

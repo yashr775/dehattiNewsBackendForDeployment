@@ -6,6 +6,7 @@ import userRoute from "./src/routes/admin.js";
 import postsRoute from "./src/routes/post.js";
 import analyticsRoute from "./src/routes/analytics.js";
 import sponsorsRoute from "./src/routes/sponsor.js";
+import notificationRoute from "./src/routes/notificationRoutes.js"
 import ImageKit from "imagekit";
 import morgan from "morgan";
 import NodeCache from "node-cache";
@@ -14,23 +15,18 @@ import axios from "axios";
 // const fs = require("fs");
 import fs from "fs";
 import path from "path";
-import webpush from "web-push";
+// import webpush from "web-push";
 
-import { subscribeUser } from "./subscribe";
-
-await subscribeUser("YOUR_PUBLIC_VAPID_KEY");
-
-
-const vapidKeys = webpush.generateVAPIDKeys();
-webpush.setVapidDetails(
-  "mailto:dehaatnews@gmail.com",
-  process.env.PUBLIC_VAPID_KEY,
-  process.env.PRIVATE_VAPID_KEY
-);
-
-module.exports = webpush;
 
 dotenv.config({ path: "./.env" });
+
+// import { subscribeUser } from "./subscribe.js";
+
+// await subscribeUser("YOUR_PUBLIC_VAPID_KEY");
+
+
+// const vapidKeys = webpush.generateVAPIDKeys();
+
 
 const app = express();
 
@@ -150,6 +146,7 @@ const initializeServer = async () => {
     app.use("/api/v1/posts", postsRoute);
     app.use("/api/v1/sponsors", sponsorsRoute);
     app.use("/api/v1/analytics", analyticsRoute)
+    app.use("/api/v1/notifications", notificationRoute)
 
     app.listen(PORT, () => {
       console.log(`🚀 App is listening on port ${PORT}`);
