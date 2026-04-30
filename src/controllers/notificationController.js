@@ -30,12 +30,14 @@ export const subscribe = async (req, res) => {
 export const sendNotification = async (payload) => {
     try {
 
+
         const subscriptions = await Subscription.find();
+        console.log(payload)
         const notificationPayload = JSON.stringify({
             title: payload.title,
             body: "Click to read full article",
             image: payload.image,
-            url: `${process.env.CLIENT_URL}/${payload.url}`,
+            url: payload.url,
             icon: `${process.env.CLIENT_URL}/dehaatnews.png`,
         });
 

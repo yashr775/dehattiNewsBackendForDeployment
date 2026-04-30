@@ -27,9 +27,9 @@ const createPost = TryCatch(async (req, res) => {
 
     // After saving the post
     const payload = {
-    title: post.title,
-    image: post.imageUrl || post.photos?.[0]?.url || `${process.env.CLIENT_URL}/dehaatnews.png`,
-    url: `${process.env.CLIENT_URL}viewfull/${post._id}`,
+        title: post.title,
+        image: post.imageUrl || post.photos?.[0]?.url || `${process.env.CLIENT_URL}/dehaatnews.png`,
+        url: `${process.env.CLIENT_URL}/viewfull/${post._id}`,
     };
 
     await sendNotification(payload);
