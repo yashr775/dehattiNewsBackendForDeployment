@@ -29,12 +29,13 @@ export const subscribe = async (req, res) => {
 // --- Send Notification to all subscribers ---
 export const sendNotification = async (payload) => {
     try {
+
         const subscriptions = await Subscription.find();
         const notificationPayload = JSON.stringify({
             title: payload.title,
             body: "Click to read full article",
             image: payload.image,
-            url: payload.url,
+            url: `${process.env.CLIENT_URL}/${payload.url}`,
             icon: `${process.env.CLIENT_URL}/dehaatnews.png`,
         });
 
